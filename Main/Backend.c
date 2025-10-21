@@ -7,5 +7,10 @@ int x = 10;
 
 void func() {
     printf("Value of x: %d\n", x);
+        printf("Value of x: %d\n", x);
+    printf("Value of x: %d\n", x);
+
+    printf("Value of x: %d\n", x);
+
 }  
 
