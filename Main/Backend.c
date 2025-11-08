@@ -1,2 +1,0 @@
-//Main
-#include <stdio.h>
