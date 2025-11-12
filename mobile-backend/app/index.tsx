@@ -1,6 +1,11 @@
-import { Text, View } from "react-native";
+import React from 'react';
+import {StyleSheet, Button, View, Text, Alert} from 'react-native';
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 
 export default function Index() {
+  const onPressLearnMore = () => {
+    Alert.alert('Button pressed!');
+  };
   return (
     <View
       style={{
@@ -9,7 +14,12 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Hello babadutski.</Text>
+      <Text style={{ marginBottom: 20 }}> Press the Button to connect to the weigth.</Text>
+      <Button
+        onPress={() => Alert.alert('Pressed!')}
+        title="Connect to Weight"
+        color="#0047ba"
+      />
     </View>
   );
 }
