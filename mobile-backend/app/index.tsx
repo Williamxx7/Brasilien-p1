@@ -1,5 +1,5 @@
 import React from 'react';
-import {StyleSheet, Button, View, Text, Alert} from 'react-native';
+import {StyleSheet, View, Text, Alert, TouchableOpacity} from 'react-native';
 
 export default function Index() {
   const onPressLearnMore = () => {
@@ -14,11 +14,21 @@ export default function Index() {
       }}
     >
       <Text style={{ marginBottom: 20 }}> Press the Button to connect to the weigth.</Text>
-      <Button
+  
+      <TouchableOpacity
         onPress={() => Alert.alert('Pressed!')}
-        title="Connect to Weight"
-        color="#0047ba"
-      />
+        style={{
+          backgroundColor: '#0047ba',
+          paddingVertical: 12,
+          paddingHorizontal: 32,
+          borderRadius: 8,
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+          Connect to Weight
+        </Text>
+      </TouchableOpacity>
+  
     </View>
   );
 }
