@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react';
 import { Button, Platform, Text, View } from 'react-native';
 import { BleManager, Device } from 'react-native-ble-plx';
 import { useAndroidPermissions } from './useAndroidPermissions';
+import {  atob } from "react-native-quick-base64";
 
 const bleManager = new BleManager();
 
 const DEVICE_NAME = "MyESP32";
 const SERVICE_UUID = "ab49b033-1163-48db-931c-9c2a3002ee1d";
+const STEPCOUNT_CHARACTERISTIC_UUID = "fbb6411e-26a7-44fb-b7a3-a343e2b011fe";
 
 export default function App() {
   const [hasPermissions, setHasPermissions] = useState<boolean>(Platform.OS == 'ios');
@@ -15,6 +17,10 @@ export default function App() {
 
   const [connectionStatus, setConnectionStatus] = useState("Searching...");
   const [isConnected, setIsConnected] = useState<boolean>(false);
+
+  const [device, setDevice] = useState<Device | null>(null);
+
+  const [stepCount, setStepCount] = useState(-1);
 
   useEffect(() => {
     if (!(Platform.OS == 'ios')){
@@ -42,9 +48,6 @@ export default function App() {
         connectToDevice(device);
       }
     });
-
-
-    const [device, setDevice] = useState<Device | null>(null);
 
     const connectToDevice = async (device: Device) => {
       try {
@@ -94,6 +97,25 @@ export default function App() {
       return () => subscription.remove();
     }, [device]);
   
+    useEffect(() => {
+      if(!device || !device.isConnected) {
+        return
+      }
+      const sub = device.monitorCharacteristicForService(
+        SERVICE_UUID,
+        STEPCOUNT_CHARACTERISTIC_UUID,
+        (error, char) => {
+          if (error || !char) {
+            return;
+          }
+
+          const rawValue = parseInt(atob(char?.value ?? ""));
+          setStepCount(rawValue);
+        }
+      )
+      return () => sub.remove()
+    }, [device])
+
 
   return (
     <View
@@ -115,6 +137,7 @@ export default function App() {
       onPress={() => {}}
       title={`The button is ${isConnected ? "enabled" : "disabled"}`}
       />
+      <Text>The current Step count is: {stepCount}</Text>
       </View>
     )
     }
