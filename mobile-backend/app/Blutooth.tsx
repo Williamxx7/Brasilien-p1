@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Button, Platform, Text, View } from 'react-native';
-import { useAndroidPermissions } from './useAndroidPermissions';
+import { useAndroidPermissions } from 'useAndroidPermissions';
 
 export default function App() {
   const [hasPermissions, setHasPermissions] = useState<boolean>(Platform.OS == 'ios');
