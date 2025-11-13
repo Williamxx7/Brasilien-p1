@@ -9,8 +9,9 @@ interface PermissionsAndroidResponse {
 }
 
 const PERMISSIONS_REQUEST = [
-  PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-  PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+  PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+  PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+  PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
 ];
 
 const isAllGranted = (res: PermissionsAndroidResponse) => {
