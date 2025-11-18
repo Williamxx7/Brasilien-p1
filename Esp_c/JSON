@@ -1,0 +1,27 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <cjson.h>
+#include <string.h>
+
+int main(void) {
+float maal_vaegt;
+char wastepicker_ID[100];
+
+printf("Indtast materiale ID: \n")
+scanf("%s", wastepicker_ID);
+
+printf("Indtast vægt af materialet i kg: \n");
+scanf("%f", maal_vaegt);
+
+*cJSON *obj = cJSON_CreateObject();
+cJSON_AddStringToObject(obj, "materiale", wastepicker_ID);
+cJSON_AddNumberToObject(obj, "maal_vaegt", maal_vaegt);
+
+char *json_str = cJSON_Print(obj);
+printf("%s\n", json_str);
+free(json_str);
+cJSON_DDelete(obj);
+
+
+return 0;
+}
