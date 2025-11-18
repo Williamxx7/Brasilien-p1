@@ -7,21 +7,29 @@ int main(void) {
 float maal_vaegt;
 char wastepicker_ID[100];
 
+//Skriver og henter wastepickerID som string.
 printf("Indtast materiale ID: \n")
 scanf("%s", wastepicker_ID);
 
+//indtaster vægten i kg.
 printf("Indtast vægt af materialet i kg: \n");
 scanf("%f", maal_vaegt);
 
+//Opretter cJSON.
 *cJSON *obj = cJSON_CreateObject();
 cJSON_AddStringToObject(obj, "materiale", wastepicker_ID);
 cJSON_AddNumberToObject(obj, "maal_vaegt", maal_vaegt);
 
+//konvertere til JSON string.
 char *json_str = cJSON_Print(obj);
+
+//printer resultatet.
 printf("%s\n", json_str);
+
+//ryder op efter.
 free(json_str);
 cJSON_DDelete(obj);
 
-
+//returnere.
 return 0;
 }
