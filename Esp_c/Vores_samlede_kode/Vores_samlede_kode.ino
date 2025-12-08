@@ -1,5 +1,5 @@
 
-#include <Adafruit_HX711.h>
+#include <HX711.h>
 #include <LiquidCrystal_I2C.h>
 #include <WiFiClient.h>
 #include <WiFiNINA.h> // Or use <WiFi.h>
@@ -10,6 +10,9 @@
 #include <BLE2902.h>
 
 BLEServer *pServer;
+BLECharacteristic *pUserInfoCharacteristic;
+BLECharacteristic *pCommandCharacteristic;
+BLECharacteristic *pWeightDataCharacteristic;
 
 #define DEVICE_NAME            "ESP32_Weigh_1"
 #define SERVICE_UUID           "ab49b033-1163-48db-931c-9c2a3002ee1d"
@@ -32,8 +35,87 @@ WiFiServer server(80);
 
 String currentUserId = "";
 String currentMaterial = "";
-bool weight_start = false;
+volatile bool weight_start = false;
+volatile bool weight_stable = false; // Weight is stable and ready for confirmation
 bool isConnected = false; // Bluetooth connection status
+volatile float weightkg = 0; // Global weight variable
+float oldWeight = 0; // Track previous weight for stability detection
+
+// Callback til USER_INFO characteristic
+class UserInfoCallbacks : public BLECharacteristicCallbacks {
+	void onWrite(BLECharacteristic *pCharacteristic) override {
+
+    // value er tekst som fx "USER:32329414;MAT:ALU"
+		String raw = String(pCharacteristic->getValue().c_str()); //gemmer dataen i en string "raw"
+    Serial.print("USER_INFO raw: ");
+    Serial.println(raw);
+
+    // Parse USER:
+    int userPos = raw.indexOf("USER:"); //get int of the starting position
+    int matPos  = raw.indexOf("MAT:"); //get int of the starting position
+
+		if (userPos >= 0) {
+			int sep = raw.indexOf(';', userPos);
+      if (sep < 0) {
+        Serial.println("ERROR, no separation found for USER");
+        return;
+      }
+      currentUserId = raw.substring(userPos + 5, sep); // 5 = længden af "USER:"
+		}
+    if (matPos >= 0) {
+      int sep = raw.indexOf(';', matPos);
+      if (sep < 0) sep = raw.length(); // Material is last field, no trailing semicolon
+      currentMaterial = raw.substring(matPos + 4, sep); // 4 = længden af "MAT:"
+    }
+    Serial.print("Parsed USER ID: ");
+    Serial.println(currentUserId);
+    Serial.print("Parsed MATERIAL: ");
+    Serial.println(currentMaterial);
+
+	}
+
+};
+
+// Callback til COMMAND characteristic
+class CommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) override {
+		String cmd = String(pCharacteristic->getValue().c_str());
+    Serial.print("COMMAND: ");
+    Serial.println(cmd);
+
+    if (cmd == "START") {
+      Serial.println("-> START command received");
+      Serial.print("   For USER: ");
+      Serial.print(currentUserId);
+      Serial.print("  MATERIAL: ");
+      Serial.println(currentMaterial);
+			weight_start = true;
+			weight_stable = false;
+    }
+		else if (cmd == "CONFIRM_RESULT") {
+      if (!weight_stable) {
+        Serial.println("-> ERROR: Cannot confirm - weight not stable yet");
+        pCommandCharacteristic->setValue("ERROR_NOT_READY");
+        return;
+      }
+
+      Serial.println("-> CONFIRM_RESULT command received");
+      Serial.print("\nConfirmed weight: ");
+      Serial.print(weightkg, 1);
+      Serial.print("kg\nfor USER: ");
+      Serial.print(currentUserId);
+      Serial.print("\nMATERIAL: ");
+      Serial.println(currentMaterial);
+
+      // Reset for next measurement
+      weight_start = false;
+      weight_stable = false;
+      oldWeight = 0;
+
+      // TODO: send data til database her
+    }
+  }
+};
 
 void setup()
 {
@@ -54,6 +136,7 @@ void setup()
     BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ
   );
 
+  pUserInfoCharacteristic->setCallbacks(new UserInfoCallbacks());
   pCommandCharacteristic->setCallbacks(new CommandCallbacks());
   pWeightDataCharacteristic->addDescriptor(new BLE2902()); // Required for notifications
 
@@ -61,7 +144,7 @@ void setup()
   pCommandCharacteristic->setValue("READY");
   pWeightDataCharacteristic->setValue("0.0");
 
-	  // Start service
+	  // Start "mappen"
   pService->start();
 
 
@@ -75,7 +158,7 @@ void setup()
 
 	 // Bluetooth device name
 	Serial.println("Bluetooth started, waiting for connection...");
-
+	//gammel kode sidste år
 	WiFi.begin(ssid, password);
 	lcd.init(); // Display initialization
 	lcd.backlight();
@@ -107,56 +190,7 @@ void setup()
 	lcd.setCursor(0, 0);
 	lcd.print("Waiting BT Conn");
 
-	// Initialising variables for later use
-	float weightg = 0;
 }
-
-class UserInfoCallbacks : public BLECharacteristicCallbacks {
-	void onWrite(BLECharacteristic *pCharacteristic) override {
-
-    // value er tekst som fx "USER:32329414;MAT:ALU"
-		String raw = String(pCharacteristic->getValue().c_str()); //gemmer dataen i en string "raw"
-    Serial.print("USER_INFO raw: ");
-    Serial.println(raw);
-
-    // Parse USER:
-    int userPos = raw.indexOf("USER:"); //get int of the starting position 
-    int matPos  = raw.indexOf("MAT:"); //get int of the starting position
-
-		if (userPos >= 0) {
-			int sep = raw.indexOf(';', userPos);
-      currentUserId = raw.substring(userPos + 5, sep); // 5 = længden af "USER:"
-		}
-    if (matPos >= 0) {
-      int sep = raw.indexOf(';', matPos);
-      if (sep < 0) serial.println("ERROR, no seperation found");
-      currentMaterial = raw.substring(matPos + 4, sep); // 4 = længden af "MAT:"
-    }
-    Serial.print("Parsed USER ID: ");
-    Serial.println(currentUserId);
-    Serial.print("Parsed MATERIAL: ");
-    Serial.println(currentMaterial);
-		
-	}
-
-}
-
-// Callback til COMMAND characteristic
-class CommandCallbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *pCharacteristic) override {
-		String cmd = String(pCharacteristic->getValue().c_str());
-    Serial.print("COMMAND: ");
-    Serial.println(cmd);
-
-    if (cmd == "START") {
-      Serial.println("-> START command received");
-      Serial.print("   For USER: ");
-      Serial.print(currentUserId);
-      Serial.print("  MATERIAL: ");
-      Serial.println(currentMaterial);
-			weight_start = true;
-
-			
 
 String sendPostData(String post_data)
 {
@@ -228,22 +262,26 @@ void loop()
 	// to be measured.
 	if(weight_start){
 		float weightg = scale.get_units(10);
+		weightkg = weightg / 1000; // Update global weightkg
 
 		if (weightg < 10000)
 		{
+			lcd.clear();
+			lcd.setCursor(0, 0);
 			lcd.print("Place weight...");
+			oldWeight = 0; // Reset when no weight
+			weight_stable = false;
 		}
 		else
 		{
 			// Measure weight
-			
-			float oldWeight = weightg;
-			float weightg = scale.get_units(10);
-			float weightkg = weightg / 1000;
-
-			if (weightg != oldWeight)
+			if (abs(weightg - oldWeight) > 5) // If weight changed by more than 5g
 			{
+				oldWeight = weightg;
+				weight_stable = false; // Weight is changing, not ready
 				lcd.clear();
+				lcd.setCursor(0, 0);
+				lcd.print("Measuring...");
 				lcd.setCursor(0, 1);
 				lcd.print(weightkg);
 				lcd.print(" Kg ");
@@ -253,21 +291,26 @@ void loop()
 				pWeightDataCharacteristic->notify();
 			}
 			else{
+				// Weight is stable
+				if (!weight_stable) {
+					// First time stable - mark as ready
+					weight_stable = true;
+					Serial.println("Weight is stable, ready for confirmation");
+				}
 				lcd.clear();
-				lcd.setCursor(0, 1);
+				lcd.setCursor(0, 0);
 				lcd.print(" DONE ");
-				lcd.clear();
 				lcd.setCursor(0, 1);
 				lcd.print(weightkg);
 				lcd.print(" Kg ");
 				char buffer[16];
+				dtostrf(weightkg,1,2,buffer);
 				pWeightDataCharacteristic->setValue(buffer);
 				pWeightDataCharacteristic->notify();
-				weight_start = false;
-				Serial.println("Weight is OFF, data is sent");
-			}<
-			delay(100);
+				// Don't reset weight_start - wait for CONFIRM_RESULT command
+			}
 		}
+		delay(100);
 	}
 	
 	// else
@@ -292,7 +335,6 @@ void loop()
 // "some name", "waste_picker_ID": "22331", "weight": 123}
 
 // TO DO:
-// - HTTP POST request to API -- DONE
 // - Fix Wifi Client handling
 // - App via BT sends signal to weight and send data - Make a button in the app that sends their data when pressed.
 // - BT response to App about the weight send to API
