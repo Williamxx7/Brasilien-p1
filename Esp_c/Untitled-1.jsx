@@ -1,11 +1,11 @@
 // bleConfig.ts
 
 // Service + Characteristics UUIDs
-export const SERVICE_UUID = 'ab49b033-1163-48db-931c-9c2a3002ee1d';
+export const SERVICE_UUID = 'ab49b033-1163-48db-931c-9c2a3002ee1d'; // // UUID for den BLE service som skalaen eksponerer
 
-export const USER_INFO_CHAR_UUID   = 'ab49b033-1163-48db-931c-9c2a3002ee1f';
-export const COMMAND_CHAR_UUID     = 'ab49b033-1163-48db-931c-9c2a3002ee1e';
-export const WEIGHT_DATA_CHAR_UUID = 'ab49b033-1163-48db-931c-9c2a3002ee20';
+export const USER_INFO_CHAR_UUID   = 'ab49b033-1163-48db-931c-9c2a3002ee1f'; // UUID for characteristic hvor vi sender bruger info (som fx userId, materialetype) 
+export const COMMAND_CHAR_UUID     = 'ab49b033-1163-48db-931c-9c2a3002ee1e'; // UUID for characteristic hvor vi sender kommandoer til skalaen (fx START, CONFIRM)
+export const WEIGHT_DATA_CHAR_UUID = 'ab49b033-1163-48db-931c-9c2a3002ee20'; // UUID for characteristic hvor vi læser vejedata tilbage fra skalaen
 
 // Evt. type hvis du vil være stram med 1|2|3
 export type WeightNumber = 1 | 2 | 3;
@@ -32,7 +32,7 @@ import {
   WEIGHT_DATA_CHAR_UUID,
 } from './bleConfig';
 
-type UseScaleBleReturn = {
+type UseScaleBleReturn = { // // Definerer hvad  returneres til React komponenten
   scanning: boolean;
   connectedDeviceId: string | null;
   selectedWeight: WeightNumber | null;
