@@ -78,7 +78,7 @@ export function useScaleBle(): UseScaleBleReturn {
     return (max - min) <= STABILITY_THRESHOLD;
   };
 
-  // useEffect kører en gang når hooken bliver brugt foerste gang
+  // useEffect kører en gang når hooken bliver brugt første gang
   // Her opretter vi BLE manageren og rydder op når komponenten unmountes
   useEffect(() => {
     // Opretter en ny BleManager og gemmer den i vores ref
@@ -144,7 +144,7 @@ export function useScaleBle(): UseScaleBleReturn {
         return;
       }
 
-      // Hvis der ikke er noget device i callback goer vi ikke noget
+      // Hvis der ikke er noget device i callback gør vi ikke noget
       if (!device) {
         return;
       }
@@ -173,7 +173,7 @@ export function useScaleBle(): UseScaleBleReturn {
             setConnectedDeviceId(connected.id);
             Alert.alert('Bluetooth', `Forbundet til vægt ${weightNum}`);
 
-            // Vi skal opdage alle services og characteristics foer vi kan læse eller skrive
+            // Vi skal opdage alle services og characteristics før vi kan læse eller skrive
             return connected.discoverAllServicesAndCharacteristics();
           })
           .then(connected => {
